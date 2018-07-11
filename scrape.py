@@ -1,4 +1,5 @@
 from time import sleep, time
+from getpass import getpass
 
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -26,7 +27,7 @@ def scrape(answer_count):
     print('Quorper: Email sent')
 
     password = form.find_element_by_name('password')
-    password.send_keys(input('Quorper: Enter your Quora account password: - '))
+    password.send_keys(getpass('Quorper: Enter your Quora account password: - '))
     print('Quorper: Password sent')
 
     password.send_keys(Keys.RETURN)
@@ -35,7 +36,7 @@ def scrape(answer_count):
     while not driver.title.startswith('Home') and not driver.title.startswith('('):
         print('Quorper: Waiting for redirect...')
         sleep(1)
-    print('Quorper: Redirected')
+    print('Quorper: Login Successful')
 
     navbar = driver.find_element_by_css_selector('.SiteHeader.LoggedInSiteHeader.new_header')
     driver.execute_script('arguments[0].parentNode.removeChild(arguments[0])', navbar)
@@ -66,24 +67,27 @@ def scrape(answer_count):
                     answer_expanded = True
                     loaded_answers.append(answer.get_attribute('innerHTML'))
                     driver.execute_script('arguments[0].parentNode.removeChild(arguments[0])', answer)
-                    print('Quorper: Answer', i+1, 'expanded, stored and deleted')
                     driver.execute_script('window.scrollTo(0, 0);')
+                    print('Quorper: Loaded answers -', len(loaded_answers))
                 else:
-                    print('Quorper: No footer found for answer', i+1, ', answer likely unexpanded')
-
+                    print('Quorper: No footer found for answer '+str(i+1)+', answer likely unexpanded')
                     more_buttons = driver.find_elements_by_class_name('more_button')
                     if len(more_buttons) > 0:
-                        print(more_buttons[0].get_attribute('innerHTML'))
                         more_buttons[0].click()
                         driver.execute_script('arguments[0].parentNode.removeChild(arguments[0])', more_buttons[0])
                         print('Quorper: Loaded more hidden answers')
 
 
-        print('Quorper: Loaded answers -', len(loaded_answers))
 
         sleep(1)
 
     upvote_list = [element.find_element_by_class_name('icon_action_bar-count').find_elements_by_tag_name('span')[1].get_attribute('innerHTML') for element in driver.find_elements_by_xpath('//a[@action_click="AnswerUpvote"]')]
+    title_list = [element.find_element_by_tag_name('span').find_element_by_tag_name('span').get_attribute('innerHTML') for element in driver.find_elements_by_class_name('question_link')]
+
+
+    print(len(upvote_list))
+    print(len(title_list))
+    print(len(loaded_answers))
 
     driver.close()
 
