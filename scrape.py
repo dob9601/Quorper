@@ -12,7 +12,7 @@ def scrape(answer_count):
     start_time = time()
 
     options = Options()
-    options.add_argument('--headless')
+    #options.add_argument('--headless')
     options.add_argument('log-level=3')
     driver = webdriver.Chrome(chrome_options=options)
     print('Quorper: Driver configured')
@@ -51,6 +51,9 @@ def scrape(answer_count):
     print('Quorper: Sufficient answers loaded (' + str(len(raw_answers)) + '/' + str(answer_count) + ')')
     
     loaded_answers = []
+    title_list = []
+    upvote_list = []
+
     driver.execute_script('window.scrollTo(0, 0);')
 
     for i in range(answer_count):
@@ -66,6 +69,19 @@ def scrape(answer_count):
                 if len(answer.find_elements_by_css_selector('.AnswerFooter.ContentFooter')) > 0:
                     answer_expanded = True
                     loaded_answers.append(answer.get_attribute('innerHTML'))
+
+                    title = driver.execute_script('return arguments[0].parentNode.children[0]', answer).find_element_by_class_name('ui_qtext_rendered_qtext').get_attribute('innerHTML')
+                    title_list.append(title)
+                    
+                    try:
+                        upvotes = driver.find_element_by_xpath('//a[@action_click=\'AnswerUpvote\']').find_element_by_class_name('icon_action_bar-count').find_elements_by_tag_name('span')[1]
+                    except:
+                        print(title)
+                        input('error')
+                    upvote_list.append(upvotes.get_attribute('innerHTML'))
+                    
+                    driver.execute_script('arguments[0].parentNode.parentNode.parentNode.parentNode.removeChild(arguments[0].parentNode.parentNode.parentNode)', upvotes)
+
                     driver.execute_script('arguments[0].parentNode.removeChild(arguments[0])', answer)
                     driver.execute_script('window.scrollTo(0, 0);')
                     print('Quorper: Loaded answers -', len(loaded_answers))
@@ -80,14 +96,6 @@ def scrape(answer_count):
 
 
         sleep(1)
-
-    upvote_list = [element.find_element_by_class_name('icon_action_bar-count').find_elements_by_tag_name('span')[1].get_attribute('innerHTML') for element in driver.find_elements_by_xpath('//a[@action_click="AnswerUpvote"]')]
-    title_list = [element.find_element_by_tag_name('span').find_element_by_tag_name('span').get_attribute('innerHTML') for element in driver.find_elements_by_class_name('question_link')]
-
-
-    print(len(upvote_list))
-    print(len(title_list))
-    print(len(loaded_answers))
 
     driver.close()
 
@@ -111,6 +119,8 @@ def scrape(answer_count):
             answer_views = int(float(answer_views[0:-1]) * 1000)
         elif answer_views[-1] == 'm':
             answer_views = int(float(answer_views[0:-1]) * 1000000)
+        elif answer_views == '':
+            answer_views = 0
         else:
             answer_views = int(answer_views[0:-1])
 
@@ -124,7 +134,10 @@ def scrape(answer_count):
         else:
             answer_upvotes = int(answer_upvotes)
 
+        answer_title = title_list[i]
+
         processed_answers.append({
+            'title': answer_title,
             'body': answer_body,
             'author': answer_author,
             'views': answer_views,
